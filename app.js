@@ -183,17 +183,8 @@ const INITIAL_VEHICLES = [
   }
 ];
 
-// Initial Users
-const DEFAULT_USERS = [
-  {
-    id: "user-gowtham",
-    username: "gowtham",
-    password: "password123",
-    name: "Gowtham P",
-    role: "Garage Owner",
-    createdAt: "2026-10-30T00:00:00.000Z"
-  }
-];
+// Initial Users - strictly empty: only users who have registered an account can sign in!
+const DEFAULT_USERS = [];
 
 // Conversion Constants
 const KM_TO_MILES = 0.621371;
@@ -239,19 +230,22 @@ class FuelTrackerApp {
      Authentication & Session Logic
      -------------------------------------------------------------------------- */
   initAuth() {
-    const savedUsers = localStorage.getItem("mygarage_users") || localStorage.getItem("fuelpulse_users");
+    // Only users who actually created an account exist. Clean out any legacy mock accounts like 'user-gowtham'.
+    const savedUsers = localStorage.getItem("mygarage_users");
     if (savedUsers) {
       try {
-        this.users = JSON.parse(savedUsers);
+        const parsed = JSON.parse(savedUsers);
+        this.users = Array.isArray(parsed) ? parsed.filter(u => u.id !== "user-gowtham") : [];
       } catch (e) {
-        this.users = [...DEFAULT_USERS];
+        this.users = [];
       }
     } else {
-      this.users = [...DEFAULT_USERS];
+      this.users = [];
     }
     localStorage.setItem("mygarage_users", JSON.stringify(this.users));
 
-    const savedSession = localStorage.getItem("mygarage_session") || localStorage.getItem("fuelpulse_session");
+    // Verify session - strictly allowed ONLY if user genuinely exists in this.users
+    const savedSession = localStorage.getItem("mygarage_session") || sessionStorage.getItem("mygarage_session");
     if (savedSession) {
       try {
         const parsed = JSON.parse(savedSession);
@@ -260,13 +254,35 @@ class FuelTrackerApp {
       } catch (e) {
         this.currentUser = null;
       }
+    } else {
+      this.currentUser = null;
     }
 
+    // Immediately update header to reflect current authentication state
+    this.updateUserHeaderUI();
+
     if (!this.currentUser) {
+      // If no users have created accounts yet on this device, default immediately to "Create Account"
+      if (this.users.length === 0) {
+        this.authMode = "register";
+        const tabReg = document.getElementById("tabRegister");
+        const tabSign = document.getElementById("tabSignIn");
+        if (tabReg && tabSign) {
+          tabReg.classList.add("active");
+          tabSign.classList.remove("active");
+        }
+      } else {
+        this.authMode = "signin";
+        const tabReg = document.getElementById("tabRegister");
+        const tabSign = document.getElementById("tabSignIn");
+        if (tabReg && tabSign) {
+          tabSign.classList.add("active");
+          tabReg.classList.remove("active");
+        }
+      }
       this.showAuthModal();
     } else {
       this.hideAuthModal();
-      this.updateUserHeaderUI();
     }
   }
 
@@ -375,10 +391,10 @@ class FuelTrackerApp {
 
   updateAuthFormUI() {
     const isRegister = this.authMode === "register";
-    document.getElementById("authTitle").textContent = isRegister ? "Create Garage Account" : "Sign In to My Garage";
+    document.getElementById("authTitle").textContent = isRegister ? "Create Garage Account" : "Sign In to Your Garage";
     document.getElementById("authSubtitle").textContent = isRegister 
-      ? "Choose a unique username to start your private garage" 
-      : "Enter your unique username and password to access your vehicles";
+      ? "Create your unique garage account to start managing your private fleet" 
+      : "Enter your registered username and password to access your vehicles";
 
     document.getElementById("groupFullName").classList.toggle("hidden", !isRegister);
     document.getElementById("groupConfirmPassword").classList.toggle("hidden", !isRegister);
@@ -389,25 +405,61 @@ class FuelTrackerApp {
     const submitBtn = document.getElementById("authSubmitBtn");
     submitBtn.querySelector("span").textContent = isRegister ? "Create Account & Start Garage" : "Sign In to Garage";
     document.getElementById("authAlert").classList.add("hidden");
+
+    // Dynamic guidance for user security
+    const noticeEl = document.getElementById("authNoticeText");
+    if (noticeEl) {
+      if (this.users.length === 0 && !isRegister) {
+        noticeEl.innerHTML = "<strong>Notice:</strong> No accounts have been created yet on this system. Please switch to <strong>Create Account</strong> to register your private garage.";
+      } else {
+        noticeEl.innerHTML = "<strong>Private Garage Guarantee:</strong> Only users who have created an account can sign in. Every user starts with an empty garage to add and track their vehicles.";
+      }
+    }
   }
 
   loginUser(username, password, remember) {
     const cleanUsername = (username || "").trim().toLowerCase();
+
+    if (!cleanUsername) {
+      this.showAuthAlert("Please enter your username to sign in.");
+      return;
+    }
+
+    if (!password) {
+      this.showAuthAlert("Please enter your password.");
+      return;
+    }
+
+    // STRICT CHECK: Users who have NOT created an account cannot sign in!
+    if (this.users.length === 0) {
+      this.showAuthAlert("No registered garage accounts found. Please click 'Create Account' above to register your account first.");
+      return;
+    }
+
     const user = this.users.find(u => u.username.toLowerCase() === cleanUsername);
 
-    if (!user || user.password !== password) {
-      this.showAuthAlert("Invalid username or password. Please check your credentials.");
+    if (!user) {
+      this.showAuthAlert(`Account "@${cleanUsername}" does not exist. No random sign-in is allowed. Please create an account first.`);
+      return;
+    }
+
+    if (user.password !== password) {
+      this.showAuthAlert(`Incorrect password for user "@${cleanUsername}". Please verify your credentials and try again.`);
       return;
     }
 
     this.currentUser = user;
     if (remember) {
       localStorage.setItem("mygarage_session", JSON.stringify(user));
+    } else {
+      sessionStorage.setItem("mygarage_session", JSON.stringify(user));
+      localStorage.removeItem("mygarage_session");
     }
 
     // Load THIS specific user's private vehicles
     this.loadVehicles();
     this.hideAuthModal();
+    this.updateUserHeaderUI();
     this.render();
     this.showToast(`Welcome back to your garage, ${user.name}!`, "success");
   }
@@ -469,9 +521,13 @@ class FuelTrackerApp {
 
     if (remember) {
       localStorage.setItem("mygarage_session", JSON.stringify(newUser));
+    } else {
+      sessionStorage.setItem("mygarage_session", JSON.stringify(newUser));
+      localStorage.removeItem("mygarage_session");
     }
 
     this.hideAuthModal();
+    this.updateUserHeaderUI();
     this.render();
     this.showToast(`Account created! Welcome to your garage, ${cleanFullName}. Add your first vehicle below!`, "success");
   }
@@ -480,6 +536,7 @@ class FuelTrackerApp {
     this.currentUser = null;
     this.vehicles = [];
     localStorage.removeItem("mygarage_session");
+    sessionStorage.removeItem("mygarage_session");
     document.getElementById("userDropdownMenu").classList.remove("show");
     this.updateUserHeaderUI();
     this.render();
@@ -614,6 +671,12 @@ class FuelTrackerApp {
   }
 
   openCameraModal(targetId = null, context = "vehicle") {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      this.showToast("Please sign in or create an account first.", "warning");
+      return;
+    }
+
     if (!targetId && this.vehicles.length > 0) {
       targetId = this.vehicles[0].id;
     }
@@ -1065,6 +1128,11 @@ class FuelTrackerApp {
   }
 
   openMaintenanceModal(vehicleId) {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      return;
+    }
+
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
@@ -2371,6 +2439,10 @@ class FuelTrackerApp {
 
   // Parking Location Modal
   openParkingModal(vehicleId) {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      return;
+    }
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
@@ -2411,6 +2483,10 @@ class FuelTrackerApp {
 
   // Trip & Refuel Modal
   openRefuelModal(vehicleId) {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      return;
+    }
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
@@ -2479,6 +2555,11 @@ class FuelTrackerApp {
 
   // Add / Edit Modal
   openAddModal() {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      this.showToast("Please sign in or create an account to add vehicles.", "warning");
+      return;
+    }
     document.getElementById("vehicleId").value = "";
     document.getElementById("modalTitle").textContent = "Add New Vehicle";
     document.getElementById("vehicleName").value = "";
@@ -2509,6 +2590,10 @@ class FuelTrackerApp {
   }
 
   openEditModal(id) {
+    if (!this.currentUser) {
+      this.showAuthModal();
+      return;
+    }
     const v = this.vehicles.find(item => item.id === id);
     if (!v) return;
 

@@ -75,10 +75,10 @@
         <!-- User Profile Dropdown -->
         <div class="user-auth-area" id="userAuthArea">
           <button class="user-profile-btn" id="userProfileBtn" aria-label="User account menu">
-            <div class="user-avatar" id="headerUserAvatar">G</div>
+            <div class="user-avatar" id="headerUserAvatar">?</div>
             <div class="user-meta-header">
-              <span class="user-display-name" id="headerUserName">Gowtham</span>
-              <span class="user-role-badge" id="headerUserRole">Owner</span>
+              <span class="user-display-name" id="headerUserName">Sign In</span>
+              <span class="user-role-badge" id="headerUserRole">Guest</span>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <polyline points="6 9 12 15 18 9"></polyline>
@@ -86,11 +86,11 @@
           </button>
           <div class="user-dropdown-menu" id="userDropdownMenu">
             <div class="dropdown-user-info">
-              <strong id="dropdownFullName">Gowtham P</strong>
-              <span id="dropdownUsername">@gowtham</span>
+              <strong id="dropdownFullName">Guest User</strong>
+              <span id="dropdownUsername">Not signed in</span>
             </div>
             <div class="dropdown-divider"></div>
-            <button class="dropdown-item hidden" id="headerSignInBtn">
+            <button class="dropdown-item" id="headerSignInBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                 <polyline points="10 17 15 12 10 7"></polyline>
@@ -98,7 +98,7 @@
               </svg>
               <span>Sign In / Register</span>
             </button>
-            <button class="dropdown-item logout-btn" id="logoutBtn">
+            <button class="dropdown-item logout-btn hidden" id="logoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -225,7 +225,7 @@
           <line x1="12" y1="16" x2="12" y2="12"></line>
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
-        <span><strong>Private Garage Guarantee:</strong> Every user starts with an empty garage. Add and manage your personal vehicles manually without interference.</span>
+        <span id="authNoticeText"><strong>Private Garage Guarantee:</strong> Only users who have created an account can sign in. Every user starts with an empty garage to add and track their vehicles.</span>
       </div>
     </div>
   </div>
