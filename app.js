@@ -177,19 +177,15 @@ const INITIAL_VEHICLES = [
   }
 ];
 
-// Pre-configured Default Users
+// Initial Users
 const DEFAULT_USERS = [
   {
+    id: "user-gowtham",
     username: "gowtham",
     password: "password123",
     name: "Gowtham P",
-    role: "Fleet Owner"
-  },
-  {
-    username: "admin",
-    password: "admin123",
-    name: "Fleet Administrator",
-    role: "Fleet Manager"
+    role: "Garage Owner",
+    createdAt: "2026-10-30T00:00:00.000Z"
   }
 ];
 
@@ -237,7 +233,7 @@ class FuelTrackerApp {
      Authentication & Session Logic
      -------------------------------------------------------------------------- */
   initAuth() {
-    const savedUsers = localStorage.getItem("fuelpulse_users");
+    const savedUsers = localStorage.getItem("mygarage_users") || localStorage.getItem("fuelpulse_users");
     if (savedUsers) {
       try {
         this.users = JSON.parse(savedUsers);
@@ -246,13 +242,15 @@ class FuelTrackerApp {
       }
     } else {
       this.users = [...DEFAULT_USERS];
-      localStorage.setItem("fuelpulse_users", JSON.stringify(this.users));
     }
+    localStorage.setItem("mygarage_users", JSON.stringify(this.users));
 
-    const savedSession = localStorage.getItem("fuelpulse_session");
+    const savedSession = localStorage.getItem("mygarage_session") || localStorage.getItem("fuelpulse_session");
     if (savedSession) {
       try {
-        this.currentUser = JSON.parse(savedSession);
+        const parsed = JSON.parse(savedSession);
+        const match = this.users.find(u => u.username.toLowerCase() === (parsed.username || "").toLowerCase());
+        this.currentUser = match || null;
       } catch (e) {
         this.currentUser = null;
       }
@@ -261,18 +259,26 @@ class FuelTrackerApp {
     if (!this.currentUser) {
       this.showAuthModal();
     } else {
+      this.hideAuthModal();
       this.updateUserHeaderUI();
     }
   }
 
   showAuthModal() {
-    document.getElementById("authPortal").classList.remove("hidden");
-    document.getElementById("authAlert").classList.add("hidden");
+    const portal = document.getElementById("authPortal");
+    if (portal) portal.classList.remove("hidden");
+    const alertEl = document.getElementById("authAlert");
+    if (alertEl) alertEl.classList.add("hidden");
+    const mainApp = document.getElementById("mainApp");
+    if (mainApp) mainApp.classList.add("app-blurred");
     this.updateAuthFormUI();
   }
 
   hideAuthModal() {
-    document.getElementById("authPortal").classList.add("hidden");
+    const portal = document.getElementById("authPortal");
+    if (portal) portal.classList.add("hidden");
+    const mainApp = document.getElementById("mainApp");
+    if (mainApp) mainApp.classList.remove("app-blurred");
     this.updateUserHeaderUI();
   }
 
@@ -311,22 +317,6 @@ class FuelTrackerApp {
       }
     });
 
-    // Demo tip
-    document.getElementById("forgotPassBtn").addEventListener("click", () => {
-      alert("Demo Accounts Available:\n\n1. Username: gowtham | Password: password123\n2. Username: admin | Password: admin123\n\nYou can also click the quick demo buttons at the bottom!");
-    });
-
-    // Quick demo buttons
-    document.querySelectorAll(".demo-user-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const u = btn.getAttribute("data-user");
-        const p = btn.getAttribute("data-pass");
-        document.getElementById("authUsername").value = u;
-        document.getElementById("authPassword").value = p;
-        this.loginUser(u, p, true);
-      });
-    });
-
     // Form submit
     document.getElementById("authForm").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -348,8 +338,21 @@ class FuelTrackerApp {
     const dropdownMenu = document.getElementById("userDropdownMenu");
     profileBtn.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (!this.currentUser) {
+        this.showAuthModal();
+        return;
+      }
       dropdownMenu.classList.toggle("show");
     });
+
+    // Header sign-in button
+    const headerSignInBtn = document.getElementById("headerSignInBtn");
+    if (headerSignInBtn) {
+      headerSignInBtn.addEventListener("click", () => {
+        dropdownMenu.classList.remove("show");
+        this.showAuthModal();
+      });
+    }
 
     // Logout button
     document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -366,80 +369,114 @@ class FuelTrackerApp {
 
   updateAuthFormUI() {
     const isRegister = this.authMode === "register";
-    document.getElementById("authTitle").textContent = isRegister ? "Create Fleet Account" : "Sign In to Your Fleet";
+    document.getElementById("authTitle").textContent = isRegister ? "Create Garage Account" : "Sign In to My Garage";
     document.getElementById("authSubtitle").textContent = isRegister 
-      ? "Register your profile to manage your personal vehicles" 
-      : "Enter your username and password to access vehicle telematics";
+      ? "Choose a unique username to start your private garage" 
+      : "Enter your unique username and password to access your vehicles";
 
     document.getElementById("groupFullName").classList.toggle("hidden", !isRegister);
     document.getElementById("groupConfirmPassword").classList.toggle("hidden", !isRegister);
     document.getElementById("rememberMeRow").classList.toggle("hidden", isRegister);
+    const usernameHelp = document.getElementById("usernameHelp");
+    if (usernameHelp) usernameHelp.classList.toggle("hidden", !isRegister);
 
     const submitBtn = document.getElementById("authSubmitBtn");
-    submitBtn.querySelector("span").textContent = isRegister ? "Create Account & Sign In" : "Sign In to Fleet";
+    submitBtn.querySelector("span").textContent = isRegister ? "Create Account & Start Garage" : "Sign In to Garage";
     document.getElementById("authAlert").classList.add("hidden");
   }
 
   loginUser(username, password, remember) {
-    const user = this.users.find(u => (u.username.toLowerCase() === username));
+    const cleanUsername = (username || "").trim().toLowerCase();
+    const user = this.users.find(u => u.username.toLowerCase() === cleanUsername);
 
     if (!user || user.password !== password) {
-      this.showAuthAlert("Invalid username or password. Please try again.");
+      this.showAuthAlert("Invalid username or password. Please check your credentials.");
       return;
     }
 
     this.currentUser = user;
     if (remember) {
-      localStorage.setItem("fuelpulse_session", JSON.stringify(user));
+      localStorage.setItem("mygarage_session", JSON.stringify(user));
     }
+
+    // Load THIS specific user's private vehicles
+    this.loadVehicles();
     this.hideAuthModal();
-    this.showToast(`Welcome back, ${user.name}!`, "success");
+    this.render();
+    this.showToast(`Welcome back to your garage, ${user.name}!`, "success");
   }
 
   registerUser(fullName, username, password, confirmPassword, remember) {
-    if (!fullName || !username || !password) {
+    const cleanFullName = (fullName || "").trim();
+    const cleanUsername = (username || "").trim().toLowerCase();
+
+    if (!cleanFullName || !cleanUsername || !password) {
       this.showAuthAlert("Please fill in all required fields.");
       return;
     }
 
-    if (password.length < 6) {
-      this.showAuthAlert("Password must be at least 6 characters long.");
+    if (cleanUsername.length < 3) {
+      this.showAuthAlert("Username must be at least 3 characters long.");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUsername)) {
+      this.showAuthAlert("Username can only contain letters, numbers, underscores, and hyphens.");
+      return;
+    }
+
+    if (password.length < 4) {
+      this.showAuthAlert("Password must be at least 4 characters long.");
       return;
     }
 
     if (password !== confirmPassword) {
-      this.showAuthAlert("Passwords do not match.");
+      this.showAuthAlert("Passwords do not match. Please re-enter.");
       return;
     }
 
-    if (this.users.some(u => u.username.toLowerCase() === username)) {
-      this.showAuthAlert("Username already taken. Please choose another.");
+    // STRICT UNIQUE USERNAME CHECK: No two users can share a username
+    const isTaken = this.users.some(u => u.username.toLowerCase() === cleanUsername);
+    if (isTaken) {
+      this.showAuthAlert(`Username "${cleanUsername}" is already taken! Every user must have a unique username. Please choose another.`);
       return;
     }
 
     const newUser = {
-      username,
-      name: fullName,
-      password,
-      role: "Fleet Owner"
+      id: `user-${Date.now()}`,
+      username: cleanUsername,
+      name: cleanFullName,
+      password: password,
+      role: "Garage Owner",
+      createdAt: new Date().toISOString()
     };
 
+    // Save every user permanently
     this.users.push(newUser);
-    localStorage.setItem("fuelpulse_users", JSON.stringify(this.users));
+    localStorage.setItem("mygarage_users", JSON.stringify(this.users));
+
+    // Every user starts with NO vehicles!
+    localStorage.setItem(`mygarage_vehicles_${cleanUsername}`, JSON.stringify([]));
 
     this.currentUser = newUser;
+    this.vehicles = [];
+
     if (remember) {
-      localStorage.setItem("fuelpulse_session", JSON.stringify(newUser));
+      localStorage.setItem("mygarage_session", JSON.stringify(newUser));
     }
 
     this.hideAuthModal();
-    this.showToast(`Account created successfully! Welcome, ${fullName}.`, "success");
+    this.render();
+    this.showToast(`Account created! Welcome to your garage, ${cleanFullName}. Add your first vehicle below!`, "success");
   }
 
   logoutUser() {
     this.currentUser = null;
-    localStorage.removeItem("fuelpulse_session");
+    this.vehicles = [];
+    localStorage.removeItem("mygarage_session");
     document.getElementById("userDropdownMenu").classList.remove("show");
+    this.updateUserHeaderUI();
+    this.render();
     this.showAuthModal();
     this.showToast("Signed out successfully.", "info");
   }
@@ -450,20 +487,26 @@ class FuelTrackerApp {
     const roleEl = document.getElementById("headerUserRole");
     const dropName = document.getElementById("dropdownFullName");
     const dropUser = document.getElementById("dropdownUsername");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const signInBtn = document.getElementById("headerSignInBtn");
 
     if (this.currentUser) {
       const initial = (this.currentUser.name || this.currentUser.username).charAt(0).toUpperCase();
-      avatar.textContent = initial;
-      nameEl.textContent = this.currentUser.name.split(" ")[0];
-      roleEl.textContent = this.currentUser.role || "Owner";
-      dropName.textContent = this.currentUser.name;
-      dropUser.textContent = `@${this.currentUser.username}`;
+      if (avatar) avatar.textContent = initial;
+      if (nameEl) nameEl.textContent = this.currentUser.name.split(" ")[0];
+      if (roleEl) roleEl.textContent = this.currentUser.role || "Garage Owner";
+      if (dropName) dropName.textContent = this.currentUser.name;
+      if (dropUser) dropUser.textContent = `@${this.currentUser.username}`;
+      if (logoutBtn) logoutBtn.classList.remove("hidden");
+      if (signInBtn) signInBtn.classList.add("hidden");
     } else {
-      avatar.textContent = "?";
-      nameEl.textContent = "Sign In";
-      roleEl.textContent = "Guest";
-      dropName.textContent = "Guest User";
-      dropUser.textContent = "Not signed in";
+      if (avatar) avatar.textContent = "?";
+      if (nameEl) nameEl.textContent = "Sign In";
+      if (roleEl) roleEl.textContent = "Guest";
+      if (dropName) dropName.textContent = "Guest User";
+      if (dropUser) dropUser.textContent = "Not signed in";
+      if (logoutBtn) logoutBtn.classList.add("hidden");
+      if (signInBtn) signInBtn.classList.remove("hidden");
     }
   }
 
@@ -1222,48 +1265,31 @@ class FuelTrackerApp {
   }
 
   loadVehicles() {
-    const saved = localStorage.getItem("fuelpulse_vehicles");
+    if (!this.currentUser) {
+      this.vehicles = [];
+      return;
+    }
+
+    const userKey = `mygarage_vehicles_${this.currentUser.username.toLowerCase()}`;
+    const saved = localStorage.getItem(userKey);
     if (saved) {
       try {
         this.vehicles = JSON.parse(saved);
-        // Ensure all loaded vehicles have updated images, condition, service due dates, and repairs
-        this.vehicles.forEach(v => {
-          const match = INITIAL_VEHICLES.find(iv => iv.id === v.id);
-          if (match) {
-            if (!v.image) v.image = match.image;
-            if (!v.lastParked) v.lastParked = match.lastParked;
-            if (!v.parkedTime) v.parkedTime = match.parkedTime;
-            if (!v.parkedNotes) v.parkedNotes = match.parkedNotes;
-            if (!v.condition) v.condition = match.condition;
-            if (v.conditionScore === undefined) v.conditionScore = match.conditionScore;
-            if (!v.serviceDueDate) v.serviceDueDate = match.serviceDueDate;
-            if (!v.lastServiceDate) v.lastServiceDate = match.lastServiceDate;
-            if (!v.repairs || !Array.isArray(v.repairs)) v.repairs = JSON.parse(JSON.stringify(match.repairs || []));
-          } else {
-            if (!v.image) v.image = "images/toyota-rav4.jpg";
-            if (!v.lastParked) v.lastParked = "Main Garage";
-            if (!v.parkedTime) v.parkedTime = "Recently";
-            if (!v.condition) v.condition = "Good";
-            if (v.conditionScore === undefined) v.conditionScore = 85;
-            if (!v.serviceDueDate) v.serviceDueDate = "2026-12-01";
-            if (!v.lastServiceDate) v.lastServiceDate = "2026-05-01";
-            if (!v.repairs || !Array.isArray(v.repairs)) v.repairs = [];
-          }
-        });
-        this.saveVehicles();
       } catch (e) {
-        console.error("Failed to parse saved vehicles, loading defaults", e);
-        this.vehicles = JSON.parse(JSON.stringify(INITIAL_VEHICLES));
-        this.saveVehicles();
+        console.error("Failed to parse user vehicles, initializing empty", e);
+        this.vehicles = [];
       }
     } else {
-      this.vehicles = JSON.parse(JSON.stringify(INITIAL_VEHICLES));
-      this.saveVehicles();
+      // Every user starts with NO vehicles! They should add their cars manually.
+      this.vehicles = [];
+      localStorage.setItem(userKey, JSON.stringify([]));
     }
   }
 
   saveVehicles() {
-    localStorage.setItem("fuelpulse_vehicles", JSON.stringify(this.vehicles));
+    if (!this.currentUser) return;
+    const userKey = `mygarage_vehicles_${this.currentUser.username.toLowerCase()}`;
+    localStorage.setItem(userKey, JSON.stringify(this.vehicles));
   }
 
   bindEvents() {
@@ -1271,7 +1297,7 @@ class FuelTrackerApp {
     document.getElementById("themeToggleBtn").addEventListener("click", () => {
       this.currentTheme = this.currentTheme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", this.currentTheme);
-      localStorage.setItem("fuelpulse_theme", this.currentTheme);
+      localStorage.setItem("mygarage_theme", this.currentTheme);
     });
 
     // Unit toggle
@@ -1281,7 +1307,7 @@ class FuelTrackerApp {
         const selected = e.target.getAttribute("data-unit");
         if (selected !== this.currentUnit) {
           this.currentUnit = selected;
-          localStorage.setItem("fuelpulse_unit", selected);
+          localStorage.setItem("mygarage_unit", selected);
           this.updateUnitUI();
           this.render();
           this.showToast(`Switched units to ${selected === 'metric' ? 'Metric (km, Liters)' : 'Imperial (Miles, Gallons)'}`, 'info');
@@ -1330,19 +1356,25 @@ class FuelTrackerApp {
       this.renderVehiclesList();
     });
 
-    // Reset data
+    // Clear all vehicles button
     document.getElementById("resetDataBtn").addEventListener("click", () => {
-      if (confirm("Reset vehicle fleet to sample vehicles? Any custom edits will be restored.")) {
-        this.vehicles = JSON.parse(JSON.stringify(INITIAL_VEHICLES));
+      if (this.vehicles.length === 0) {
+        this.showToast("Your garage is already empty. Add your vehicles first!", "info");
+        return;
+      }
+      if (confirm("Are you sure you want to remove all vehicles from your garage? This action cannot be undone.")) {
+        this.vehicles = [];
         this.saveVehicles();
         this.render();
-        this.showToast("Reset to sample fleet successfully", "success");
+        this.showToast("All vehicles cleared from your garage.", "info");
       }
     });
 
     // Add Vehicle modal triggers
     document.getElementById("openAddModalBtn").addEventListener("click", () => this.openAddModal());
     document.getElementById("emptyAddBtn").addEventListener("click", () => this.openAddModal());
+    const emptyCamBtn = document.getElementById("emptyCamBtn");
+    if (emptyCamBtn) emptyCamBtn.addEventListener("click", () => this.openCameraModal("form", "form"));
     document.getElementById("closeModalBtn").addEventListener("click", () => this.closeModal());
     document.getElementById("cancelModalBtn").addEventListener("click", () => this.closeModal());
 
@@ -1497,12 +1529,24 @@ class FuelTrackerApp {
     document.getElementById("statTotalVehicles").textContent = totalVehicles;
 
     if (totalVehicles === 0) {
-      document.getElementById("statTotalRange").innerHTML = `0 <small>${this.currentUnit === 'metric' ? 'km' : 'mi'}</small>`;
-      document.getElementById("statAvgRange").textContent = `Avg 0 ${this.currentUnit === 'metric' ? 'km' : 'mi'}`;
+      const distUnit = this.currentUnit === 'metric' ? 'km' : 'mi';
+      document.getElementById("statTotalRange").innerHTML = `0 <small>${distUnit}</small>`;
+      document.getElementById("statAvgRange").textContent = `Avg 0 ${distUnit}`;
+      document.getElementById("statTypesBreakdown").textContent = "No active vehicles";
       document.getElementById("statAvgFuelLevel").textContent = "0%";
       document.getElementById("statFuelBar").style.width = "0%";
       document.getElementById("statLowFuelCount").textContent = "0";
-      document.getElementById("statLowFuelMsg").textContent = "No vehicles registered";
+      document.getElementById("statLowFuelMsg").textContent = "Garage is empty";
+      const repairsEl = document.getElementById("statRepairsCount");
+      const serviceDueMsg = document.getElementById("statServiceDueMsg");
+      if (repairsEl) repairsEl.innerHTML = `0 <small>repairs</small>`;
+      if (serviceDueMsg) serviceDueMsg.textContent = "All caught up";
+      document.getElementById("countAll").textContent = "0";
+      document.getElementById("countLowFuel").textContent = "0";
+      const countServiceDueEl = document.getElementById("countServiceDue");
+      if (countServiceDueEl) countServiceDueEl.textContent = "0";
+      const countRepairsEl = document.getElementById("countRepairs");
+      if (countRepairsEl) countRepairsEl.textContent = "0";
       return;
     }
 
@@ -1678,9 +1722,24 @@ class FuelTrackerApp {
       }
     });
 
+    if (this.vehicles.length === 0) {
+      grid.innerHTML = "";
+      emptyState.classList.remove("hidden");
+      const titleEl = document.getElementById("emptyStateTitle");
+      const descEl = document.getElementById("emptyStateDesc");
+      const userName = this.currentUser ? this.currentUser.name.split(' ')[0] : 'Driver';
+      if (titleEl) titleEl.textContent = `Welcome to Your Garage, ${userName}!`;
+      if (descEl) descEl.textContent = "You don't have any vehicles registered yet. Add your cars, motorcycles, or trucks manually to begin tracking remaining fuel, distance range, and maintenance!";
+      return;
+    }
+
     if (filtered.length === 0) {
       grid.innerHTML = "";
       emptyState.classList.remove("hidden");
+      const titleEl = document.getElementById("emptyStateTitle");
+      const descEl = document.getElementById("emptyStateDesc");
+      if (titleEl) titleEl.textContent = "No matching vehicles found";
+      if (descEl) descEl.textContent = "No vehicles match your active search filters. Try clearing your search query or filter pills.";
       return;
     }
 

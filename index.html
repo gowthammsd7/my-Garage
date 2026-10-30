@@ -90,6 +90,14 @@
               <span id="dropdownUsername">@gowtham</span>
             </div>
             <div class="dropdown-divider"></div>
+            <button class="dropdown-item hidden" id="headerSignInBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+              <span>Sign In / Register</span>
+            </button>
             <button class="dropdown-item logout-btn" id="logoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -102,7 +110,9 @@
         </div>
       </div>
     </div>
-  <!-- Authentication Portal Modal / Gatekeeper -->
+  </header>
+
+  <!-- Dedicated Authentication Portal / Screen -->
   <div class="auth-modal-overlay hidden" id="authPortal">
     <div class="auth-card-container">
       <div class="auth-brand-badge">
@@ -145,20 +155,20 @@
         </div>
 
         <div class="form-group">
-          <label for="authUsername">Username or Email *</label>
+          <label for="authUsername" id="labelAuthUsername">Username *</label>
           <div class="input-with-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <input type="text" id="authUsername" placeholder="Enter username (e.g. gowtham)" required autocomplete="username">
+            <input type="text" id="authUsername" placeholder="Enter your username" required autocomplete="username" spellcheck="false">
           </div>
+          <small class="form-help-text hidden" id="usernameHelp">Every user has a unique username. No two users can share a username.</small>
         </div>
 
         <div class="form-group">
           <div class="label-with-link">
             <label for="authPassword">Password *</label>
-            <button type="button" class="text-link-btn" id="forgotPassBtn">Demo Tip</button>
           </div>
           <div class="input-with-icon input-password-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -208,25 +218,20 @@
         </button>
       </form>
 
-      <!-- Quick Demo Login Shortcuts -->
-      <div class="auth-demo-section">
-        <span class="demo-section-label">Quick 1-Click Demo Login</span>
-        <div class="demo-buttons-grid">
-          <button type="button" class="btn btn-outline btn-sm demo-user-btn" data-user="gowtham" data-pass="password123">
-            <strong>Gowtham</strong>
-            <small>Owner &bull; password123</small>
-          </button>
-          <button type="button" class="btn btn-outline btn-sm demo-user-btn" data-user="admin" data-pass="admin123">
-            <strong>Admin</strong>
-            <small>Fleet Mgr &bull; admin123</small>
-          </button>
-        </div>
+      <!-- User Garage Information Note -->
+      <div class="auth-notice-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span><strong>Private Garage Guarantee:</strong> Every user starts with an empty garage. Add and manage your personal vehicles manually without interference.</span>
       </div>
     </div>
   </div>
 
   <!-- Main Container -->
-  <main class="main-container">
+  <main class="main-container" id="mainApp">
     <!-- Fleet Statistics Dashboard -->
     <section class="stats-grid">
       <div class="stat-card">
@@ -368,12 +373,12 @@
           <span>📹 All Parking Cameras</span>
         </button>
 
-        <button id="resetDataBtn" class="btn btn-ghost btn-sm" title="Reset sample vehicles">
+        <button id="resetDataBtn" class="btn btn-ghost btn-sm" title="Clear all vehicles from your garage">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-            <path d="M3 3v5h5"></path>
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
-          <span>Reset Sample</span>
+          <span>Clear Garage</span>
         </button>
       </div>
     </section>
@@ -387,13 +392,28 @@
     <div class="empty-state hidden" id="emptyState">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="8" y1="12" x2="16" y2="12"></line>
+          <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5z"></path>
+          <path d="M7 13h10M7 16h10M7 19h10"></path>
         </svg>
       </div>
-      <h3>No vehicles found</h3>
-      <p>Try adjusting your search query, clearing filters, or adding a new vehicle to your garage.</p>
-      <button class="btn btn-primary" id="emptyAddBtn">Add Your First Vehicle</button>
+      <h3 id="emptyStateTitle">Your Garage is Empty</h3>
+      <p id="emptyStateDesc">You haven't added any vehicles yet. Add your cars, motorcycles, or trucks manually to track fuel, range, and maintenance!</p>
+      <div class="empty-actions">
+        <button class="btn btn-primary" id="emptyAddBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add Your First Vehicle</span>
+        </button>
+        <button class="btn btn-outline" id="emptyCamBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          <span>Take Photo with Camera</span>
+        </button>
+      </div>
     </div>
   </main>
 

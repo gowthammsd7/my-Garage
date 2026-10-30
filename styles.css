@@ -1669,14 +1669,24 @@ body {
 .auth-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 13, 20, 0.88);
-  backdrop-filter: blur(16px);
-  z-index: 300;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: radial-gradient(circle at 50% 20%, rgba(20, 27, 45, 0.96) 0%, rgba(8, 11, 18, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  overflow-y: auto;
+  box-sizing: border-box;
   animation: fadeIn 0.25s ease;
+}
+
+.auth-modal-overlay.hidden {
+  display: none !important;
 }
 
 .auth-card-container {
@@ -1684,13 +1694,62 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 24px;
   width: 100%;
-  max-width: 460px;
-  padding: 2.25rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.15);
+  max-width: 480px;
+  margin: auto;
+  padding: 2.25rem 2rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 50px rgba(59, 130, 246, 0.15);
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  z-index: 10000;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.form-help-text {
+  font-size: 0.75rem;
+  color: #60a5fa;
+  margin-top: 0.35rem;
+  display: block;
+}
+
+.form-help-text.hidden {
+  display: none !important;
+}
+
+.auth-notice-card {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  background-color: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.auth-notice-card svg {
+  flex-shrink: 0;
+  color: #60a5fa;
+  margin-top: 2px;
+}
+
+.app-blurred {
+  filter: blur(10px);
+  opacity: 0.2;
+  pointer-events: none;
+  user-select: none;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .auth-brand-badge {
