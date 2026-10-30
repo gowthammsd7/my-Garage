@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Garage - Vehicle Fleet, Range & Maintenance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5z"></path>
+            <path d="M7 13h10M7 16h10M7 19h10"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>My <span>Garage</span></h1>
+          <p class="subtitle">Vehicle Fleet, Fuel &amp; Maintenance Hub</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Unit Toggle -->
+        <div class="control-group">
+          <label class="control-label">Units</label>
+          <div class="unit-toggle" id="unitToggle">
+            <button type="button" class="unit-btn active" data-unit="metric">Metric (km, L)</button>
+            <button type="button" class="unit-btn" data-unit="imperial">Imperial (mi, gal)</button>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Take Photo with Camera Button -->
+        <button id="openGlobalCameraBtn" class="btn btn-secondary" title="Open camera to snap photo of any vehicle or bike">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          <span>Camera & Photos</span>
+        </button>
+
+        <!-- Add Vehicle Button -->
+        <button id="openAddModalBtn" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add Vehicle</span>
+        </button>
+
+        <!-- User Profile Dropdown -->
+        <div class="user-auth-area" id="userAuthArea">
+          <button class="user-profile-btn" id="userProfileBtn" aria-label="User account menu">
+            <div class="user-avatar" id="headerUserAvatar">G</div>
+            <div class="user-meta-header">
+              <span class="user-display-name" id="headerUserName">Gowtham</span>
+              <span class="user-role-badge" id="headerUserRole">Owner</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="user-dropdown-menu" id="userDropdownMenu">
+            <div class="dropdown-user-info">
+              <strong id="dropdownFullName">Gowtham P</strong>
+              <span id="dropdownUsername">@gowtham</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-btn" id="logoutBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <!-- Authentication Portal Modal / Gatekeeper -->
+  <div class="auth-modal-overlay hidden" id="authPortal">
+    <div class="auth-card-container">
+      <div class="auth-brand-badge">
+        <div class="logo-icon logo-icon-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5z"></path>
+            <path d="M7 13h10M7 16h10M7 19h10"></path>
+          </svg>
+        </div>
+        <span>My Garage Security</span>
+      </div>
+
+      <div class="auth-header">
+        <h2 id="authTitle">Sign In to Your Fleet</h2>
+        <p id="authSubtitle">Enter your username and password to access vehicle telematics</p>
+      </div>
+
+      <!-- Auth Tabs: Sign In / Create Account -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="tabSignIn">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="tabRegister">Create Account</button>
+      </div>
+
+      <!-- Error Alert Message -->
+      <div class="auth-alert hidden" id="authAlert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="authAlertText">Invalid username or password.</span>
+      </div>
+
+      <!-- Login / Register Form -->
+      <form id="authForm" autocomplete="on">
+        <!-- Full Name (Only visible for Register) -->
+        <div class="form-group hidden" id="groupFullName">
+          <label for="authFullName">Full Name *</label>
+          <input type="text" id="authFullName" placeholder="e.g. Gowtham" autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label for="authUsername">Username or Email *</label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" id="authUsername" placeholder="Enter username (e.g. gowtham)" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-link">
+            <label for="authPassword">Password *</label>
+            <button type="button" class="text-link-btn" id="forgotPassBtn">Demo Tip</button>
+          </div>
+          <div class="input-with-icon input-password-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" id="authPassword" placeholder="Enter your password" required autocomplete="current-password">
+            <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Show/Hide Password" aria-label="Toggle password visibility">
+              <svg class="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-hide hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password (Only visible for Register) -->
+        <div class="form-group hidden" id="groupConfirmPassword">
+          <label for="authConfirmPassword">Confirm Password *</label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" id="authConfirmPassword" placeholder="Re-enter password" autocomplete="new-password">
+          </div>
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="auth-checkbox-row" id="rememberMeRow">
+          <label class="custom-checkbox-label">
+            <input type="checkbox" id="authRememberMe" checked>
+            <span>Remember me on this device</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="authSubmitBtn">
+          <span>Sign In to Fleet</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Quick Demo Login Shortcuts -->
+      <div class="auth-demo-section">
+        <span class="demo-section-label">Quick 1-Click Demo Login</span>
+        <div class="demo-buttons-grid">
+          <button type="button" class="btn btn-outline btn-sm demo-user-btn" data-user="gowtham" data-pass="password123">
+            <strong>Gowtham</strong>
+            <small>Owner &bull; password123</small>
+          </button>
+          <button type="button" class="btn btn-outline btn-sm demo-user-btn" data-user="admin" data-pass="admin123">
+            <strong>Admin</strong>
+            <small>Fleet Mgr &bull; admin123</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    <!-- Fleet Statistics Dashboard -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon fleet-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="3" width="15" height="13"></rect>
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Vehicles</span>
+          <span class="stat-value" id="statTotalVehicles">0</span>
+          <span class="stat-sub" id="statTypesBreakdown">Across 0 categories</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon range-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Fleet Range</span>
+          <span class="stat-value" id="statTotalRange">0 <small>km</small></span>
+          <span class="stat-sub" id="statAvgRange">Avg 0 km per vehicle</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon fuel-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Average Fuel Level</span>
+          <span class="stat-value" id="statAvgFuelLevel">0%</span>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="statFuelBar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" id="alertCard">
+        <div class="stat-icon alert-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Low Fuel Alert</span>
+          <span class="stat-value" id="statLowFuelCount">0</span>
+          <span class="stat-sub" id="statLowFuelMsg">All vehicles sufficiently fueled</span>
+        </div>
+      </div>
+
+      <div class="stat-card" id="maintAlertCard">
+        <div class="stat-icon maint-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Service & Repairs</span>
+          <span class="stat-value" id="statRepairsCount">0 <small>repairs</small></span>
+          <span class="stat-sub" id="statServiceDueMsg">0 vehicles due for service</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trip Planner & Range Simulator Banner -->
+    <section class="trip-planner-card">
+      <div class="trip-planner-header">
+        <div class="planner-title-group">
+          <div class="planner-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            <span>Trip Range Simulator</span>
+          </div>
+          <h3>Can your vehicle reach the destination?</h3>
+          <p>Enter a target distance to immediately see which vehicles can make the journey on their current fuel.</p>
+        </div>
+        <div class="trip-input-group">
+          <div class="input-with-suffix">
+            <input type="number" id="tripDistanceInput" placeholder="e.g. 250" min="1" step="1">
+            <span class="input-suffix" id="tripUnitSuffix">km</span>
+          </div>
+          <button id="clearTripBtn" class="btn btn-secondary btn-sm" title="Clear trip simulation">Clear</button>
+        </div>
+      </div>
+      <div id="tripSummaryBanner" class="trip-summary-banner hidden">
+        <!-- Populated via JS -->
+      </div>
+    </section>
+
+    <!-- Filter & Toolbar -->
+    <section class="toolbar-section">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search by vehicle name, model, license plate...">
+      </div>
+
+      <div class="filter-pills" id="filterPills">
+        <button class="pill active" data-filter="all">All Vehicles (<span id="countAll">0</span>)</button>
+        <button class="pill" data-filter="car">Cars / Sedans</button>
+        <button class="pill" data-filter="suv">SUVs</button>
+        <button class="pill" data-filter="truck">Trucks</button>
+        <button class="pill" data-filter="motorcycle">Bikes</button>
+        <button class="pill" data-filter="ev">Electric / Hybrid</button>
+        <button class="pill pill-warning" data-filter="low-fuel">Low Fuel (<span id="countLowFuel">0</span>)</button>
+        <button class="pill pill-alert" data-filter="service-due">Service Due (<span id="countServiceDue">0</span>)</button>
+        <button class="pill pill-danger" data-filter="repairs-needed">Repairs Needed (<span id="countRepairs">0</span>)</button>
+      </div>
+
+      <div class="toolbar-actions">
+        <select id="sortSelect" class="select-dropdown" aria-label="Sort vehicles">
+          <option value="range-desc">Sort: Highest Range First</option>
+          <option value="range-asc">Sort: Lowest Range First</option>
+          <option value="fuel-asc">Sort: Lowest Fuel % First</option>
+          <option value="fuel-desc">Sort: Highest Fuel % First</option>
+          <option value="name-asc">Sort: Name (A-Z)</option>
+        </select>
+
+        <button id="openAllCamsBtn" class="btn btn-outline btn-sm" title="Open Parking Surveillance Cameras">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          <span>📹 All Parking Cameras</span>
+        </button>
+
+        <button id="resetDataBtn" class="btn btn-ghost btn-sm" title="Reset sample vehicles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>Reset Sample</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Vehicle Cards Grid -->
+    <section class="vehicles-grid" id="vehiclesGrid">
+      <!-- Injected via JavaScript -->
+    </section>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </div>
+      <h3>No vehicles found</h3>
+      <p>Try adjusting your search query, clearing filters, or adding a new vehicle to your garage.</p>
+      <button class="btn btn-primary" id="emptyAddBtn">Add Your First Vehicle</button>
+    </div>
+  </main>
+
+  <!-- Add / Edit Vehicle Modal -->
+  <div class="modal-overlay hidden" id="vehicleModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add New Vehicle</h3>
+        <button class="modal-close-btn" id="closeModalBtn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form id="vehicleForm">
+        <input type="hidden" id="vehicleId">
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="vehicleName">Vehicle Name & Model *</label>
+            <input type="text" id="vehicleName" placeholder="e.g. Toyota RAV4, Tesla Model 3" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="vehicleYear">Year</label>
+            <input type="number" id="vehicleYear" placeholder="2024" min="1950" max="2035">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vehicleType">Vehicle Type *</label>
+            <select id="vehicleType" required>
+              <option value="car">Sedan / Hatchback</option>
+              <option value="suv">SUV / Crossover</option>
+              <option value="truck">Pickup / Truck</option>
+              <option value="motorcycle">Motorcycle / Scooter</option>
+              <option value="van">Van / Minivan</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleFuelType">Power / Fuel Type *</label>
+            <select id="vehicleFuelType" required>
+              <option value="Petrol">Petrol / Gasoline</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Electric">Electric (EV)</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="CNG">CNG / Gas</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehiclePlate">License Plate</label>
+            <input type="text" id="vehiclePlate" placeholder="e.g. MH-02-AB-4589">
+          </div>
+        </div>
+
+        <div class="form-divider"><span>Fuel Capacity & Efficiency</span></div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vehicleCapacity" id="labelCapacity">Tank Capacity (Liters) *</label>
+            <input type="number" id="vehicleCapacity" min="0.1" step="0.1" placeholder="e.g. 55" required>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleCurrentFuel" id="labelCurrentFuel">Current Fuel Remaining (Liters) *</label>
+            <input type="number" id="vehicleCurrentFuel" min="0" step="0.1" placeholder="e.g. 38" required>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleEfficiency" id="labelEfficiency">Fuel Efficiency (km/L) *</label>
+            <input type="number" id="vehicleEfficiency" min="0.1" step="0.1" placeholder="e.g. 15.5" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vehicleLocation">Last Parked Location *</label>
+            <input type="text" id="vehicleLocation" placeholder="e.g. Home Garage - Bay 2, Downtown Office P3" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="vehicleImage">Vehicle Photo (Camera / Upload)</label>
+            <div class="form-photo-action-box">
+              <div class="form-photo-thumb-wrap">
+                <img id="formImageThumb" src="images/toyota-rav4.jpg" alt="Preview" onerror="this.src='images/toyota-rav4.jpg';">
+              </div>
+              <div class="form-photo-btn-group">
+                <button type="button" class="btn btn-outline btn-sm form-cam-btn" id="formCameraBtn" title="Take a photo with device camera">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span>Take with Camera</span>
+                </button>
+                <label class="btn btn-outline btn-sm form-upload-btn" title="Upload from device files">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>Upload File</span>
+                  <input type="file" id="formFileInput" accept="image/*" class="hidden">
+                </label>
+              </div>
+            </div>
+            <input type="text" id="vehicleImage" placeholder="Or enter image URL / path (e.g. images/toyota-rav4.jpg)" style="margin-top: 0.35rem; font-size: 0.8rem;">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vehicleColor">Accent Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="vehicleColor" value="#3b82f6">
+              <span class="color-hex-label" id="colorHexLabel">#3b82f6</span>
+            </div>
+          </div>
+          <div class="form-group flex-2">
+            <label for="vehicleNotes">Notes / Usage</label>
+            <input type="text" id="vehicleNotes" placeholder="e.g. Daily commuter, highway cruiser">
+          </div>
+        </div>
+
+        <div class="form-divider"><span>Vehicle Health & Service Schedule</span></div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vehicleCondition">Vehicle Health Condition *</label>
+            <select id="vehicleCondition" required>
+              <option value="Excellent">🟢 Excellent (90–100%)</option>
+              <option value="Good" selected>🔵 Good (75–89%)</option>
+              <option value="Fair">🟡 Fair / Needs Attention (50–74%)</option>
+              <option value="Critical">🔴 Critical / Repair Needed (&lt;50%)</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleConditionScore">Health Score (%)</label>
+            <input type="number" id="vehicleConditionScore" min="10" max="100" placeholder="88" value="88">
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleServiceDueDate">Next Service Due Date *</label>
+            <input type="date" id="vehicleServiceDueDate" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="vehiclePendingRepairs">Pending Repairs / Issues to be done (comma separated)</label>
+          <input type="text" id="vehiclePendingRepairs" placeholder="e.g. Brake pad replacement, Oil change overdue, Chain lube">
+        </div>
+
+        <!-- Calculated Live Preview in Modal -->
+        <div class="modal-preview-card">
+          <div class="preview-badge">Live Range Preview</div>
+          <div class="preview-stats">
+            <div>
+              <span class="preview-label">Estimated Range</span>
+              <span class="preview-value" id="previewRange">0 km</span>
+            </div>
+            <div>
+              <span class="preview-label">Fuel Level</span>
+              <span class="preview-value" id="previewPercentage">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveVehicleBtn">Save Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Quick Refuel Modal -->
+  <div class="modal-overlay hidden" id="refuelModal">
+    <div class="modal-container modal-sm">
+      <div class="modal-header">
+        <h3 id="refuelTitle">Quick Refuel</h3>
+        <button class="modal-close-btn" id="closeRefuelModalBtn" aria-label="Close refuel modal">&times;</button>
+      </div>
+      <div class="refuel-body">
+        <p id="refuelVehicleName" class="refuel-veh-name"></p>
+        <div class="refuel-current-status">
+          <span>Current Level: <strong id="refuelCurrentLiters">0</strong></span>
+          <span>Max Capacity: <strong id="refuelMaxLiters">0</strong></span>
+        </div>
+
+        <div class="quick-add-buttons" id="quickAddButtons">
+          <button class="btn btn-outline" data-amount="5">+5</button>
+          <button class="btn btn-outline" data-amount="10">+10</button>
+          <button class="btn btn-outline" data-amount="20">+20</button>
+          <button class="btn btn-outline" data-amount="full">Full Tank</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label for="customRefuelAmount">Custom Amount to Add:</label>
+          <div class="input-with-suffix">
+            <input type="number" id="customRefuelAmount" min="0" step="0.5" placeholder="0">
+            <span class="input-suffix" id="refuelUnitSuffix">L</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelRefuelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmRefuelBtn">Update Fuel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Parking Location Modal -->
+  <div class="modal-overlay hidden" id="parkingModal">
+    <div class="modal-container modal-sm">
+      <div class="modal-header">
+        <h3>Update Parked Location</h3>
+        <button class="modal-close-btn" id="closeParkingModalBtn" aria-label="Close parking modal">&times;</button>
+      </div>
+      <div class="refuel-body">
+        <p id="parkingVehicleName" class="refuel-veh-name"></p>
+        <div class="form-group">
+          <label for="newParkedLocation">Current Parking Spot / Area:</label>
+          <input type="text" id="newParkedLocation" placeholder="e.g. Home Garage - Bay 2, Airport Terminal 2 P4">
+        </div>
+        <div class="form-group">
+          <label for="newParkedNotes">Parking Notes / Landmark (optional):</label>
+          <input type="text" id="newParkedNotes" placeholder="e.g. Near Pillar D7, Level 2 EV charging slot">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelParkingBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveParkingBtn">Save Location</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Health, Service Due & Repair Manager Modal -->
+  <div class="modal-overlay hidden" id="maintenanceModal">
+    <div class="modal-container modal-maint">
+      <div class="modal-header maint-header">
+        <div class="maint-header-title">
+          <div class="maint-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3>Vehicle Health, Service & Repair Manager</h3>
+            <p class="modal-subtitle" id="maintVehicleSubtitle">Manage maintenance condition, service due dates, and repair jobs</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeMaintenanceModalBtn" aria-label="Close maintenance modal">&times;</button>
+      </div>
+
+      <div class="maint-modal-body">
+        <!-- Target Vehicle Header Card -->
+        <div class="maint-vehicle-banner">
+          <div class="maint-veh-thumb-wrap">
+            <img id="maintVehThumb" src="images/toyota-rav4.jpg" alt="Vehicle preview" onerror="this.src='images/toyota-rav4.jpg';">
+          </div>
+          <div class="maint-veh-info">
+            <h4 id="maintVehicleName">Toyota RAV4 Hybrid</h4>
+            <div class="maint-veh-tags">
+              <span class="maint-pill-plate" id="maintVehiclePlate">MH-02-AB-4589</span>
+              <span class="maint-pill-type" id="maintVehicleType">SUV • Hybrid</span>
+              <span class="maint-pill-spot" id="maintVehicleSpot">Bay P4-118</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1: Condition & Health Score -->
+        <div class="maint-card-block">
+          <div class="maint-block-header">
+            <span class="maint-block-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+              Vehicle Health & Mechanical Condition
+            </span>
+            <span class="maint-condition-badge" id="maintConditionBadge">Good (88%)</span>
+          </div>
+
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="maintConditionSelect">Condition Tier</label>
+              <select id="maintConditionSelect">
+                <option value="Excellent">🟢 Excellent (No faults, peak performance)</option>
+                <option value="Good">🔵 Good (Minor wear, safe & reliable)</option>
+                <option value="Fair">🟡 Fair / Needs Attention (Service required)</option>
+                <option value="Critical">🔴 Critical / Repair Needed (Urgent repairs)</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <div class="label-with-val">
+                <label for="maintScoreSlider">Health Score</label>
+                <strong id="maintScoreVal">88%</strong>
+              </div>
+              <input type="range" id="maintScoreSlider" min="10" max="100" value="88" class="maint-slider">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Service Schedule & Due Date -->
+        <div class="maint-card-block">
+          <div class="maint-block-header">
+            <span class="maint-block-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Service Schedule & Milestones
+            </span>
+            <span class="service-due-tag" id="maintServiceDuePill">Due in 18 days</span>
+          </div>
+
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="maintDueDateInput">Next Scheduled Service Due Date *</label>
+              <input type="date" id="maintDueDateInput" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="maintLastServiceDateInput">Last Serviced Date</label>
+              <input type="date" id="maintLastServiceDateInput">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Repairs Checklist & Task Management -->
+        <div class="maint-card-block">
+          <div class="maint-block-header">
+            <span class="maint-block-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              Repairs to be Done & Maintenance Checklist
+            </span>
+            <span class="repairs-count-badge" id="maintPendingCount">2 Pending</span>
+          </div>
+
+          <!-- Active Repairs List -->
+          <div class="maint-repairs-list" id="maintRepairsList">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Add New Repair Task Form -->
+          <div class="add-repair-row">
+            <div class="input-with-icon flex-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              <input type="text" id="newRepairDescription" placeholder="Enter repair needed (e.g. Brake pad replacement, Oil change)...">
+            </div>
+            <select id="newRepairPriority" class="select-dropdown flex-1">
+              <option value="high">🔴 High Priority</option>
+              <option value="medium" selected>🟡 Medium Priority</option>
+              <option value="low">🔵 Low Priority</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" id="addNewRepairBtn">
+              <span>+ Add Repair</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions" style="margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" id="cancelMaintBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveMaintBtn">Save Service & Repair Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Camera & Photo Studio Modal -->
+  <div class="modal-overlay hidden" id="cameraModal">
+    <div class="modal-container modal-cam-studio">
+      <div class="modal-header cam-studio-header">
+        <div class="cam-header-title">
+          <div class="cam-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h3>Vehicle Camera & Photo Studio</h3>
+            <p class="modal-subtitle">Access your device camera to snap and update vehicle or bike photos</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeCameraModalBtn" aria-label="Close camera modal">&times;</button>
+      </div>
+
+      <!-- Vehicle Target Selector & Camera Status Bar -->
+      <div class="cam-vehicle-selector-bar">
+        <div class="cam-veh-select-wrap">
+          <label for="cameraVehicleSelect">Target Vehicle:</label>
+          <select id="cameraVehicleSelect" class="cam-veh-select">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <div class="cam-status-pill" id="cameraStatusPill">
+          <span class="cam-pulse-dot"></span>
+          <span id="cameraStatusText">Camera Active</span>
+        </div>
+      </div>
+
+      <!-- Camera Viewport & Viewfinder Area -->
+      <div class="camera-viewfinder-wrapper" id="cameraViewportWrap">
+        <!-- Live Camera Stream Video -->
+        <video id="deviceWebcam" class="camera-live-video" autoplay playsinline muted></video>
+
+        <!-- Viewfinder Overlay Guidelines -->
+        <div class="camera-viewfinder-overlay" id="viewfinderOverlay">
+          <div class="vf-corner top-left"></div>
+          <div class="vf-corner top-right"></div>
+          <div class="vf-corner bottom-left"></div>
+          <div class="vf-corner bottom-right"></div>
+          <div class="vf-center-crosshair"></div>
+          <div class="vf-guidance-pill" id="viewfinderHint">
+            Point camera at vehicle and tap Capture Photo
+          </div>
+        </div>
+
+        <!-- Captured Photo Freeze / Preview -->
+        <div class="camera-captured-preview hidden" id="cameraCapturedPreview">
+          <img id="capturedPhotoImg" src="" alt="Captured Vehicle Preview">
+          <div class="captured-preview-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Photo Snapped & Ready</span>
+          </div>
+        </div>
+
+        <!-- Shutter Flash Effect Screen -->
+        <div class="camera-shutter-flash hidden" id="cameraShutterFlash"></div>
+
+        <!-- Offscreen Canvas for Snap Capture -->
+        <canvas id="cameraCanvas" class="hidden"></canvas>
+      </div>
+
+      <!-- Optional Parking Spot Location to update together with photo -->
+      <div class="cam-spot-meta-bar" id="camSpotMetaBar">
+        <div class="form-group flex-1">
+          <label for="camParkedLocationInput">Last Parked Location / Spot (optional):</label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <input type="text" id="camParkedLocationInput" placeholder="e.g. Garage Bay P4-118, Motorcycle Bay 48">
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera Action Controls -->
+      <div class="camera-actions-bar">
+        <!-- Live Mode Controls -->
+        <div class="cam-actions-group" id="liveCameraControls">
+          <!-- Flip Camera (Front / Rear) -->
+          <button type="button" class="btn btn-outline btn-sm cam-tool-btn" id="flipCameraBtn" title="Switch between front and back camera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M20 16.5l-4-4 4-4"></path>
+              <path d="M4 7.5l4 4-4 4"></path>
+              <path d="M20 12.5A8.5 8.5 0 0 1 4 12.5"></path>
+              <path d="M4 11.5A8.5 8.5 0 0 1 20 11.5"></path>
+            </svg>
+            <span id="flipCameraLabel">Flip Camera</span>
+          </button>
+
+          <!-- Upload from device file -->
+          <label class="btn btn-outline btn-sm cam-tool-btn form-upload-label" title="Upload an existing photo from device">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>Upload Photo</span>
+            <input type="file" id="cameraFileInput" accept="image/*" class="hidden">
+          </label>
+
+          <!-- Big Shutter Capture Button -->
+          <button type="button" class="btn btn-primary cam-shutter-btn" id="shutterBtn" title="Take photo now">
+            <div class="shutter-circle-outer">
+              <div class="shutter-circle-inner"></div>
+            </div>
+            <span>Capture Photo</span>
+          </button>
+        </div>
+
+        <!-- Post-Capture Review Controls -->
+        <div class="cam-actions-group hidden" id="reviewCameraControls">
+          <button type="button" class="btn btn-secondary cam-tool-btn" id="retakePhotoBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <polyline points="23 20 23 14 17 14"></polyline>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+            </svg>
+            <span>Retake Photo</span>
+          </button>
+
+          <button type="button" class="btn btn-primary cam-save-btn" id="saveCapturedPhotoBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Save to Vehicle</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>My Garage &copy; 2026 &bull; Real-time Vehicle Fleet, Fuel, Range &amp; Maintenance Hub</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
