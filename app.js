@@ -14,8 +14,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Hybrid",
     plate: "MH-02-AB-4589",
     capacity: 55, // Liters (metric base)
-    currentFuel: 38, // Liters
     efficiency: 18.5, // km/L
+    distanceTraveled: 314.5, // km driven since last full tank (55 - 314.5/18.5 = 38 L remaining)
+    currentFuel: 38, // Liters
     color: "#10b981",
     image: "images/toyota-rav4.jpg",
     cctvImage: "images/rav4-cctv.jpg",
@@ -42,8 +43,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Electric",
     plate: "KA-01-EV-2024",
     capacity: 75, // kWh
-    currentFuel: 58, // kWh
     efficiency: 6.2, // km/kWh
+    distanceTraveled: 105.4, // km driven (75 - 105.4/6.2 = 58 kWh remaining)
+    currentFuel: 58, // kWh
     color: "#3b82f6",
     image: "images/tesla-model-y.jpg",
     cctvImage: "images/tesla-cctv.jpg",
@@ -71,8 +73,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Petrol",
     plate: "DL-04-CY-9912",
     capacity: 47, // Liters
-    currentFuel: 7.5, // Liters (Low Fuel < 20%)
     efficiency: 14.2, // km/L
+    distanceTraveled: 560.9, // km driven (47 - 560.9/14.2 = 7.5 L remaining)
+    currentFuel: 7.5, // Liters (Low Fuel < 20%)
     color: "#ef4444",
     image: "images/honda-civic.jpg",
     cctvImage: "images/honda-civic.jpg",
@@ -100,8 +103,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Diesel",
     plate: "TN-07-TR-3301",
     capacity: 98, // Liters
-    currentFuel: 68, // Liters
     efficiency: 9.8, // km/L
+    distanceTraveled: 294.0, // km driven (98 - 294/9.8 = 68 L remaining)
+    currentFuel: 68, // Liters
     color: "#f59e0b",
     image: "images/ford-f150.jpg",
     cctvImage: "images/ford-f150.jpg",
@@ -128,8 +132,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Petrol",
     plate: "KA-05-MC-7711",
     capacity: 14, // Liters
-    currentFuel: 11.5, // Liters
     efficiency: 23.5, // km/L
+    distanceTraveled: 58.7, // km driven (14 - 58.7/23.5 = 11.5 L remaining)
+    currentFuel: 11.5, // Liters
     color: "#8b5cf6",
     image: "images/yamaha-mt07.jpg",
     cctvImage: "images/bike-cctv.jpg",
@@ -156,8 +161,9 @@ const INITIAL_VEHICLES = [
     fuelType: "Electric",
     plate: "AP-09-EV-8820",
     capacity: 72.6, // kWh
-    currentFuel: 15.0, // kWh (Low battery ~ 20.6%)
     efficiency: 5.7, // km/kWh
+    distanceTraveled: 328.3, // km driven (72.6 - 328.3/5.7 = 15.0 kWh remaining)
+    currentFuel: 15.0, // kWh (Low battery ~ 20.6%)
     color: "#06b6d4",
     image: "images/hyundai-ioniq5.jpg",
     cctvImage: "images/hyundai-ioniq5.jpg",
@@ -1390,8 +1396,9 @@ class FuelTrackerApp {
     });
 
     // Modal Live Preview inputs
-    ["vehicleCapacity", "vehicleCurrentFuel", "vehicleEfficiency", "vehicleFuelType"].forEach(id => {
-      document.getElementById(id).addEventListener("input", () => this.updateModalPreview());
+    ["vehicleCapacity", "vehicleDistanceTraveled", "vehicleEfficiency", "vehicleFuelType"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", () => this.updateModalPreview());
     });
 
     // Save Vehicle Form
@@ -1400,18 +1407,29 @@ class FuelTrackerApp {
       this.saveVehicleFromForm();
     });
 
-    // Quick Refuel Modal events
+    // Quick Refuel / Trip Modal events
     document.getElementById("closeRefuelModalBtn").addEventListener("click", () => this.closeRefuelModal());
     document.getElementById("cancelRefuelBtn").addEventListener("click", () => this.closeRefuelModal());
-    document.getElementById("confirmRefuelBtn").addEventListener("click", () => this.applyCustomRefuel());
 
-    const quickAddBtns = document.querySelectorAll("#quickAddButtons button");
-    quickAddBtns.forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const amount = e.target.getAttribute("data-amount");
-        this.applyQuickRefuel(amount);
+    const resetTripBtn = document.getElementById("resetTripFullTankBtn");
+    if (resetTripBtn) {
+      resetTripBtn.addEventListener("click", () => this.resetTripFullTank());
+    }
+
+    const confirmDistBtn = document.getElementById("confirmDistanceBtn");
+    if (confirmDistBtn) {
+      confirmDistBtn.addEventListener("click", () => this.saveCustomDistance());
+    }
+
+    const customDistInput = document.getElementById("customDistanceInput");
+    if (customDistInput) {
+      customDistInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.saveCustomDistance();
+        }
       });
-    });
+    }
 
     // Parking Modal events
     document.getElementById("closeParkingModalBtn").addEventListener("click", () => this.closeParkingModal());
@@ -1443,77 +1461,129 @@ class FuelTrackerApp {
   updateModalLabelsForFuelType(fuelType) {
     const isEV = fuelType === "Electric";
     const capLabel = document.getElementById("labelCapacity");
-    const currLabel = document.getElementById("labelCurrentFuel");
     const effLabel = document.getElementById("labelEfficiency");
+    const distLabel = document.getElementById("labelDistanceTraveled");
 
     if (isEV) {
-      capLabel.textContent = "Battery Capacity (kWh) *";
-      currLabel.textContent = "Current Battery Remaining (kWh) *";
-      effLabel.textContent = this.currentUnit === "metric" ? "Efficiency (km/kWh) *" : "Efficiency (mi/kWh) *";
+      if (capLabel) capLabel.textContent = "Battery Capacity (kWh) *";
+      if (effLabel) effLabel.textContent = this.currentUnit === "metric" ? "Efficiency (km/kWh) *" : "Efficiency (mi/kWh) *";
+      if (distLabel) distLabel.textContent = this.currentUnit === "metric" ? "Distance Driven Since Full Charge (km) *" : "Distance Driven Since Full Charge (mi) *";
     } else {
       if (this.currentUnit === "metric") {
-        capLabel.textContent = "Tank Capacity (Liters) *";
-        currLabel.textContent = "Current Fuel Remaining (Liters) *";
-        effLabel.textContent = "Fuel Efficiency (km/L) *";
+        if (capLabel) capLabel.textContent = "Tank Capacity (Liters) *";
+        if (effLabel) effLabel.textContent = "Fuel Efficiency (km/L) *";
+        if (distLabel) distLabel.textContent = "Distance Driven Since Last Full Refuel (km) *";
       } else {
-        capLabel.textContent = "Tank Capacity (Gallons) *";
-        currLabel.textContent = "Current Fuel Remaining (Gallons) *";
-        effLabel.textContent = "Fuel Efficiency (MPG) *";
+        if (capLabel) capLabel.textContent = "Tank Capacity (Gallons) *";
+        if (effLabel) effLabel.textContent = "Fuel Efficiency (MPG) *";
+        if (distLabel) distLabel.textContent = "Distance Driven Since Last Full Refuel (mi) *";
       }
     }
   }
 
   updateModalPreview() {
-    const capacity = parseFloat(document.getElementById("vehicleCapacity").value) || 0;
-    const current = parseFloat(document.getElementById("vehicleCurrentFuel").value) || 0;
-    const efficiency = parseFloat(document.getElementById("vehicleEfficiency").value) || 0;
+    const isEV = document.getElementById("vehicleFuelType")?.value === "Electric";
+    const capacity = parseFloat(document.getElementById("vehicleCapacity")?.value) || 0;
+    const efficiency = parseFloat(document.getElementById("vehicleEfficiency")?.value) || 0;
+    const distanceDriven = parseFloat(document.getElementById("vehicleDistanceTraveled")?.value) || 0;
 
-    const percent = capacity > 0 ? Math.min(100, Math.round((current / capacity) * 100)) : 0;
-    const range = current * efficiency;
+    const fullRange = capacity * efficiency;
+    const fuelUsed = efficiency > 0 ? (distanceDriven / efficiency) : 0;
+    const fuelLeft = Math.max(0, capacity - fuelUsed);
+    const remainingRange = Math.max(0, fullRange - distanceDriven);
+    const percent = capacity > 0 ? Math.max(0, Math.min(100, Math.round((fuelLeft / capacity) * 100))) : 0;
+
     const distUnit = this.currentUnit === "metric" ? "km" : "mi";
+    const fuelUnit = isEV ? "kWh" : (this.currentUnit === "metric" ? "L" : "gal");
 
-    document.getElementById("previewPercentage").textContent = `${percent}%`;
-    document.getElementById("previewRange").textContent = `${Math.round(range)} ${distUnit}`;
+    const prevRange = document.getElementById("previewRange");
+    const prevFuelLeft = document.getElementById("previewFuelLeft");
+    const prevFuelUsed = document.getElementById("previewFuelUsed");
+    const prevFullRange = document.getElementById("previewFullRange");
+
+    if (prevRange) prevRange.textContent = `${Math.round(remainingRange)} ${distUnit}`;
+    if (prevFuelLeft) prevFuelLeft.textContent = `~${fuelLeft.toFixed(1)} ${fuelUnit} (${percent}%)`;
+    if (prevFuelUsed) prevFuelUsed.textContent = `~${fuelUsed.toFixed(1)} ${fuelUnit}`;
+    if (prevFullRange) prevFullRange.textContent = `${Math.round(fullRange)} ${distUnit}`;
   }
 
-  // Calculate range in current active unit
+  // Calculate range and fuel estimated from distance traveled
   computeVehicleRange(vehicle) {
     const isEV = vehicle.fuelType === "Electric";
-    const currentFuelMetric = vehicle.currentFuel;
-    const efficiencyMetric = vehicle.efficiency;
+    const capacityMetric = parseFloat(vehicle.capacity) || 0;
+    const efficiencyMetric = parseFloat(vehicle.efficiency) || 0;
 
-    // Range in km
-    const rangeKm = currentFuelMetric * efficiencyMetric;
+    // Total full tank / battery range in km
+    const fullRangeKm = capacityMetric * efficiencyMetric;
+
+    // Distance driven since last full refuel/charge in km
+    let distanceTraveledKm = 0;
+    if (vehicle.distanceTraveled !== undefined && vehicle.distanceTraveled !== null) {
+      distanceTraveledKm = parseFloat(vehicle.distanceTraveled) || 0;
+    } else if (vehicle.currentFuel !== undefined && vehicle.currentFuel !== null) {
+      // Migrate legacy data
+      const fuelUsed = Math.max(0, capacityMetric - (parseFloat(vehicle.currentFuel) || 0));
+      distanceTraveledKm = fuelUsed * efficiencyMetric;
+    }
+
+    distanceTraveledKm = Math.max(0, distanceTraveledKm);
+
+    // Fuel consumed based on distance traveled & efficiency:
+    // Fuel Consumed (L) = Distance (km) / Efficiency (km/L)
+    const fuelConsumedMetric = efficiencyMetric > 0 ? (distanceTraveledKm / efficiencyMetric) : 0;
+
+    // Estimated fuel remaining (Liters or kWh)
+    const estimatedFuelRemainingMetric = Math.max(0, capacityMetric - fuelConsumedMetric);
+
+    // Remaining range in km = max(0, fullRangeKm - distanceTraveledKm)
+    const remainingRangeKm = Math.max(0, fullRangeKm - distanceTraveledKm);
+
+    // Fuel percentage remaining (0 - 100%)
+    const percent = capacityMetric > 0
+      ? Math.max(0, Math.min(100, Math.round((estimatedFuelRemainingMetric / capacityMetric) * 100)))
+      : 0;
 
     if (this.currentUnit === "metric") {
       return {
-        range: rangeKm,
-        displayRange: Math.round(rangeKm),
+        range: remainingRangeKm,
+        displayRange: Math.round(remainingRangeKm),
+        distanceTraveled: Math.round(distanceTraveledKm),
+        fullRange: Math.round(fullRangeKm),
+        fuelConsumed: Number(fuelConsumedMetric.toFixed(1)),
+        estimatedFuelRemaining: Number(estimatedFuelRemainingMetric.toFixed(1)),
+        currentFuel: Number(estimatedFuelRemainingMetric.toFixed(1)),
+        capacity: capacityMetric,
         unit: "km",
-        currentFuel: currentFuelMetric,
-        capacity: vehicle.capacity,
         fuelUnit: isEV ? "kWh" : "L",
         efficiency: efficiencyMetric,
         efficiencyUnit: isEV ? "km/kWh" : "km/L",
-        percent: Math.min(100, Math.round((vehicle.currentFuel / vehicle.capacity) * 100))
+        percent: percent
       };
     } else {
       // Imperial
-      const rangeMiles = rangeKm * KM_TO_MILES;
-      const currentFuelImp = isEV ? vehicle.currentFuel : (vehicle.currentFuel * LITERS_TO_GALLONS);
-      const capacityImp = isEV ? vehicle.capacity : (vehicle.capacity * LITERS_TO_GALLONS);
-      const efficiencyImp = isEV ? (vehicle.efficiency * KM_TO_MILES) : (vehicle.efficiency * KML_TO_MPG);
+      const remainingRangeMiles = remainingRangeKm * KM_TO_MILES;
+      const distanceTraveledMiles = distanceTraveledKm * KM_TO_MILES;
+      const fullRangeMiles = fullRangeKm * KM_TO_MILES;
+
+      const fuelConsumedImp = isEV ? fuelConsumedMetric : (fuelConsumedMetric * LITERS_TO_GALLONS);
+      const estimatedFuelRemainingImp = isEV ? estimatedFuelRemainingMetric : (estimatedFuelRemainingMetric * LITERS_TO_GALLONS);
+      const capacityImp = isEV ? capacityMetric : (capacityMetric * LITERS_TO_GALLONS);
+      const efficiencyImp = isEV ? (efficiencyMetric * KM_TO_MILES) : (efficiencyMetric * KML_TO_MPG);
 
       return {
-        range: rangeMiles,
-        displayRange: Math.round(rangeMiles),
-        unit: "mi",
-        currentFuel: Number(currentFuelImp.toFixed(1)),
+        range: remainingRangeMiles,
+        displayRange: Math.round(remainingRangeMiles),
+        distanceTraveled: Math.round(distanceTraveledMiles),
+        fullRange: Math.round(fullRangeMiles),
+        fuelConsumed: Number(fuelConsumedImp.toFixed(1)),
+        estimatedFuelRemaining: Number(estimatedFuelRemainingImp.toFixed(1)),
+        currentFuel: Number(estimatedFuelRemainingImp.toFixed(1)),
         capacity: Number(capacityImp.toFixed(1)),
+        unit: "mi",
         fuelUnit: isEV ? "kWh" : "gal",
         efficiency: Number(efficiencyImp.toFixed(1)),
         efficiencyUnit: isEV ? "mi/kWh" : "MPG",
-        percent: Math.min(100, Math.round((vehicle.currentFuel / vehicle.capacity) * 100))
+        percent: percent
       };
     }
   }
@@ -1684,8 +1754,8 @@ class FuelTrackerApp {
       // Filter pills
       if (this.activeFilter === "all") return true;
       if (this.activeFilter === "low-fuel") {
-        const percent = (v.currentFuel / v.capacity) * 100;
-        return percent < 20;
+        const stats = this.computeVehicleRange(v);
+        return stats.percent < 20;
       }
       if (this.activeFilter === "service-due") {
         const s = this.getServiceStatus(v.serviceDueDate);
@@ -1981,11 +2051,11 @@ class FuelTrackerApp {
 
         <!-- Range Hero Display -->
         <div class="range-showcase">
-          <span class="range-label">Estimated Driving Range</span>
+          <span class="range-label">Estimated Remaining Range</span>
           <div class="range-number">
             ${stats.displayRange.toLocaleString()} <span class="range-unit">${stats.unit}</span>
           </div>
-          <span class="range-subtext">Distance it can travel on remaining fuel</span>
+          <span class="range-subtext">Estimated based on ${stats.distanceTraveled} ${stats.unit} driven since last full tank</span>
         </div>
 
         <!-- Fuel Gauge Bar -->
@@ -1995,7 +2065,7 @@ class FuelTrackerApp {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
                 <path d="M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path>
               </svg>
-              ${vehicle.fuelType === 'Electric' ? 'Battery Level' : 'Remaining Fuel'}
+              ${vehicle.fuelType === 'Electric' ? 'Estimated Battery Remaining' : 'Estimated Fuel Remaining'}
             </span>
             <span class="fuel-percent-badge ${statusClass}">${stats.percent}%</span>
           </div>
@@ -2004,26 +2074,31 @@ class FuelTrackerApp {
             <div class="gauge-bar-fill ${statusClass}" style="width: ${stats.percent}%;"></div>
           </div>
 
-          <div class="gauge-details">
-            <span>Remaining: <strong>${stats.currentFuel} ${stats.fuelUnit}</strong></span>
+          <div class="gauge-details gauge-details-main">
+            <span>Est. Left: <strong>~${stats.estimatedFuelRemaining} ${stats.fuelUnit}</strong></span>
             <span>Capacity: <strong>${stats.capacity} ${stats.fuelUnit}</strong></span>
           </div>
 
-          <!-- Interactive Fuel Level Slider -->
+          <div class="gauge-details gauge-details-sub" style="font-size: 0.72rem; margin-top: -0.25rem; color: var(--text-muted);">
+            <span>Driven: <strong>${stats.distanceTraveled} ${stats.unit}</strong> (~${stats.fuelConsumed} ${stats.fuelUnit} used)</span>
+            <span>Full Range: <strong>${stats.fullRange} ${stats.unit}</strong></span>
+          </div>
+
+          <!-- Interactive Distance Driven Slider -->
           <div class="slider-container">
             <div class="slider-label">
-              <span>Simulate / Adjust Fuel</span>
-              <span id="slider-val-${vehicle.id}">${stats.currentFuel} ${stats.fuelUnit}</span>
+              <span>Trip Meter (Distance Driven)</span>
+              <span id="slider-val-${vehicle.id}">${stats.distanceTraveled} / ${stats.fullRange} ${stats.unit}</span>
             </div>
             <input 
               type="range" 
-              class="fuel-slider" 
+              class="distance-slider" 
               data-id="${vehicle.id}" 
               min="0" 
-              max="${stats.capacity}" 
-              step="${stats.capacity > 30 ? '0.5' : '0.1'}" 
-              value="${stats.currentFuel}"
-              title="Drag to simulate fuel burn or refill"
+              max="${stats.fullRange}" 
+              step="1" 
+              value="${stats.distanceTraveled}"
+              title="Slide to update distance traveled since last refill"
             >
           </div>
         </div>
@@ -2036,7 +2111,7 @@ class FuelTrackerApp {
           </div>
           <div class="spec-item">
             <span class="spec-title">Status</span>
-            <span class="spec-val" style="color: ${isLowFuel ? 'var(--danger)' : isMediumFuel ? 'var(--warning)' : 'var(--success)'};">
+            <span class="spec-val status-spec-val" style="color: ${isLowFuel ? 'var(--danger)' : isMediumFuel ? 'var(--warning)' : 'var(--success)'};">
               ${isLowFuel ? '⚠ Refuel Urgent' : isMediumFuel ? 'Moderate Level' : '✓ Well Fueled'}
             </span>
           </div>
@@ -2070,12 +2145,19 @@ class FuelTrackerApp {
 
         <!-- Footer Actions -->
         <div class="card-footer">
-          <button class="btn btn-outline btn-sm quick-refuel-btn" data-id="${vehicle.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"></path>
+          <button class="btn btn-outline btn-sm trip-refuel-btn" data-id="${vehicle.id}" title="Reset trip meter on full tank or enter distance/refill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path>
             </svg>
-            <span>Quick Refuel</span>
+            <span>Trip / Refuel</span>
           </button>
+          <button class="btn btn-outline btn-sm manage-service-btn" data-id="${vehicle.id}" title="Manage Service & Repairs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span>Service &amp; Repairs</span>
+          </button>
+        </div>
           <button class="btn btn-outline btn-sm manage-service-btn" data-id="${vehicle.id}" title="Manage Service & Repairs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
@@ -2101,26 +2183,23 @@ class FuelTrackerApp {
       });
     });
 
-    // Slider real-time drag
-    document.querySelectorAll(".fuel-slider").forEach(slider => {
+    // Slider real-time drag (controls distance traveled since refuel)
+    document.querySelectorAll(".distance-slider, .fuel-slider").forEach(slider => {
       slider.addEventListener("input", (e) => {
         const id = e.target.getAttribute("data-id");
         const vehicle = this.vehicles.find(v => v.id === id);
         if (!vehicle) return;
 
         const valInActiveUnit = parseFloat(e.target.value);
-        const isEV = vehicle.fuelType === "Electric";
-
-        // Convert back to metric base for internal storage
-        if (this.currentUnit === "metric" || isEV) {
-          vehicle.currentFuel = valInActiveUnit;
-        } else {
-          // Imperial gallons to Liters
-          vehicle.currentFuel = valInActiveUnit / LITERS_TO_GALLONS;
+        let distMetric = valInActiveUnit;
+        if (this.currentUnit === "imperial") {
+          distMetric = valInActiveUnit / KM_TO_MILES;
         }
 
-        // Clamp
-        vehicle.currentFuel = Math.max(0, Math.min(vehicle.capacity, vehicle.currentFuel));
+        vehicle.distanceTraveled = Math.max(0, distMetric);
+        const fuelUsed = vehicle.efficiency > 0 ? (distMetric / vehicle.efficiency) : 0;
+        vehicle.currentFuel = Math.max(0, vehicle.capacity - fuelUsed);
+
         this.saveVehicles();
 
         // Update card smoothly
@@ -2130,8 +2209,8 @@ class FuelTrackerApp {
       });
     });
 
-    // Quick refuel trigger
-    document.querySelectorAll(".quick-refuel-btn").forEach(btn => {
+    // Quick refuel / Trip trigger
+    document.querySelectorAll(".trip-refuel-btn, .quick-refuel-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
         this.openRefuelModal(id);
@@ -2200,6 +2279,11 @@ class FuelTrackerApp {
       rangeEl.innerHTML = `${stats.displayRange.toLocaleString()} <span class="range-unit">${stats.unit}</span>`;
     }
 
+    const rangeSub = card.querySelector(".range-subtext");
+    if (rangeSub) {
+      rangeSub.textContent = `Estimated based on ${stats.distanceTraveled} ${stats.unit} driven since last full tank`;
+    }
+
     // Update badge
     const badge = card.querySelector(".fuel-percent-badge");
     if (badge) {
@@ -2215,18 +2299,40 @@ class FuelTrackerApp {
     }
 
     // Update gauge text
-    const details = card.querySelector(".gauge-details");
-    if (details) {
-      details.innerHTML = `
-        <span>Remaining: <strong>${stats.currentFuel} ${stats.fuelUnit}</strong></span>
+    const mainDetails = card.querySelector(".gauge-details-main");
+    if (mainDetails) {
+      mainDetails.innerHTML = `
+        <span>Est. Left: <strong>~${stats.estimatedFuelRemaining} ${stats.fuelUnit}</strong></span>
         <span>Capacity: <strong>${stats.capacity} ${stats.fuelUnit}</strong></span>
+      `;
+    }
+
+    const subDetails = card.querySelector(".gauge-details-sub");
+    if (subDetails) {
+      subDetails.innerHTML = `
+        <span>Driven: <strong>${stats.distanceTraveled} ${stats.unit}</strong> (~${stats.fuelConsumed} ${stats.fuelUnit} used)</span>
+        <span>Full Range: <strong>${stats.fullRange} ${stats.unit}</strong></span>
       `;
     }
 
     // Update slider label
     const sliderVal = document.getElementById(`slider-val-${vehicle.id}`);
     if (sliderVal) {
-      sliderVal.textContent = `${stats.currentFuel} ${stats.fuelUnit}`;
+      sliderVal.textContent = `${stats.distanceTraveled} / ${stats.fullRange} ${stats.unit}`;
+    }
+
+    // Update slider attribute if not currently focused
+    const sliderInput = card.querySelector(".distance-slider, .fuel-slider");
+    if (sliderInput && document.activeElement !== sliderInput) {
+      sliderInput.max = stats.fullRange;
+      sliderInput.value = stats.distanceTraveled;
+    }
+
+    // Update status spec
+    const statusVal = card.querySelector(".status-spec-val");
+    if (statusVal) {
+      statusVal.style.color = isLowFuel ? 'var(--danger)' : isMediumFuel ? 'var(--warning)' : 'var(--success)';
+      statusVal.textContent = isLowFuel ? '⚠ Refuel Urgent' : isMediumFuel ? 'Moderate Level' : '✓ Well Fueled';
     }
 
     // Update trip badge if present
@@ -2303,7 +2409,7 @@ class FuelTrackerApp {
     this.showToast(`Updated parked location for ${vehicle.name}`, "success");
   }
 
-  // Refuel Modal
+  // Trip & Refuel Modal
   openRefuelModal(vehicleId) {
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
@@ -2311,11 +2417,17 @@ class FuelTrackerApp {
     this.activeRefuelVehicleId = vehicleId;
     const stats = this.computeVehicleRange(vehicle);
 
-    document.getElementById("refuelVehicleName").textContent = vehicle.name;
-    document.getElementById("refuelCurrentLiters").textContent = `${stats.currentFuel} ${stats.fuelUnit}`;
-    document.getElementById("refuelMaxLiters").textContent = `${stats.capacity} ${stats.fuelUnit}`;
-    document.getElementById("refuelUnitSuffix").textContent = stats.fuelUnit;
-    document.getElementById("customRefuelAmount").value = "";
+    const vehNameEl = document.getElementById("refuelVehicleName");
+    const drivenEl = document.getElementById("refuelDistanceDriven");
+    const currEl = document.getElementById("refuelCurrentLiters");
+    const suffixEl = document.getElementById("refuelDistUnitSuffix");
+    const inputEl = document.getElementById("customDistanceInput");
+
+    if (vehNameEl) vehNameEl.textContent = vehicle.name;
+    if (drivenEl) drivenEl.textContent = `${stats.distanceTraveled} ${stats.unit} (of ${stats.fullRange} ${stats.unit} full tank)`;
+    if (currEl) currEl.textContent = `~${stats.estimatedFuelRemaining} ${stats.fuelUnit} (${stats.percent}%)`;
+    if (suffixEl) suffixEl.textContent = stats.unit;
+    if (inputEl) inputEl.value = stats.distanceTraveled;
 
     document.getElementById("refuelModal").classList.remove("hidden");
   }
@@ -2325,46 +2437,44 @@ class FuelTrackerApp {
     document.getElementById("refuelModal").classList.add("hidden");
   }
 
-  applyQuickRefuel(amountKey) {
+  resetTripFullTank() {
     if (!this.activeRefuelVehicleId) return;
     const vehicle = this.vehicles.find(v => v.id === this.activeRefuelVehicleId);
     if (!vehicle) return;
 
-    if (amountKey === "full") {
-      vehicle.currentFuel = vehicle.capacity;
-    } else {
-      const addedMetric = parseFloat(amountKey);
-      vehicle.currentFuel = Math.min(vehicle.capacity, vehicle.currentFuel + addedMetric);
-    }
+    vehicle.distanceTraveled = 0;
+    vehicle.currentFuel = vehicle.capacity;
 
     this.saveVehicles();
     this.closeRefuelModal();
     this.render();
-    this.showToast(`Successfully refueled ${vehicle.name}!`, "success");
+    this.showToast(`Full tank recorded! Trip meter reset to 0 for ${vehicle.name}.`, "success");
   }
 
-  applyCustomRefuel() {
+  saveCustomDistance() {
     if (!this.activeRefuelVehicleId) return;
     const vehicle = this.vehicles.find(v => v.id === this.activeRefuelVehicleId);
     if (!vehicle) return;
 
-    const inputVal = parseFloat(document.getElementById("customRefuelAmount").value);
-    if (isNaN(inputVal) || inputVal <= 0) {
-      alert("Please enter a valid positive fuel amount.");
+    const inputVal = parseFloat(document.getElementById("customDistanceInput").value);
+    if (isNaN(inputVal) || inputVal < 0) {
+      alert("Please enter a valid non-negative distance.");
       return;
     }
 
-    const isEV = vehicle.fuelType === "Electric";
-    let amountInMetric = inputVal;
-    if (this.currentUnit === "imperial" && !isEV) {
-      amountInMetric = inputVal / LITERS_TO_GALLONS;
+    let distMetric = inputVal;
+    if (this.currentUnit === "imperial") {
+      distMetric = inputVal / KM_TO_MILES;
     }
 
-    vehicle.currentFuel = Math.min(vehicle.capacity, vehicle.currentFuel + amountInMetric);
+    vehicle.distanceTraveled = Number(distMetric.toFixed(1));
+    const fuelUsed = vehicle.efficiency > 0 ? (distMetric / vehicle.efficiency) : 0;
+    vehicle.currentFuel = Number(Math.max(0, vehicle.capacity - fuelUsed).toFixed(2));
+
     this.saveVehicles();
     this.closeRefuelModal();
     this.render();
-    this.showToast(`Added fuel to ${vehicle.name}`, "success");
+    this.showToast(`Updated distance driven for ${vehicle.name}. Fuel remaining updated!`, "success");
   }
 
   // Add / Edit Modal
@@ -2377,8 +2487,8 @@ class FuelTrackerApp {
     document.getElementById("vehicleFuelType").value = "Petrol";
     document.getElementById("vehiclePlate").value = "";
     document.getElementById("vehicleCapacity").value = "";
-    document.getElementById("vehicleCurrentFuel").value = "";
     document.getElementById("vehicleEfficiency").value = "";
+    document.getElementById("vehicleDistanceTraveled").value = "0";
     document.getElementById("vehicleLocation").value = "Home Garage";
     document.getElementById("vehicleImage").value = "images/toyota-rav4.jpg";
     const addThumb = document.getElementById("formImageThumb");
@@ -2423,15 +2533,17 @@ class FuelTrackerApp {
     const pendingTasks = (v.repairs || []).filter(r => r.status !== "completed").map(r => r.description);
     document.getElementById("vehiclePendingRepairs").value = pendingTasks.join(", ");
 
+    const stats = this.computeVehicleRange(v);
     const isEV = v.fuelType === "Electric";
+
     if (this.currentUnit === "metric" || isEV) {
       document.getElementById("vehicleCapacity").value = v.capacity;
-      document.getElementById("vehicleCurrentFuel").value = v.currentFuel;
       document.getElementById("vehicleEfficiency").value = v.efficiency;
+      document.getElementById("vehicleDistanceTraveled").value = Math.round(stats.distanceTraveled);
     } else {
-      document.getElementById("vehicleCapacity").value = Number((v.capacity * LITERS_TO_GALLONS).toFixed(1));
-      document.getElementById("vehicleCurrentFuel").value = Number((v.currentFuel * LITERS_TO_GALLONS).toFixed(1));
-      document.getElementById("vehicleEfficiency").value = Number((v.efficiency * KML_TO_MPG).toFixed(1));
+      document.getElementById("vehicleCapacity").value = stats.capacity;
+      document.getElementById("vehicleEfficiency").value = stats.efficiency;
+      document.getElementById("vehicleDistanceTraveled").value = Math.round(stats.distanceTraveled);
     }
 
     this.updateModalLabelsForFuelType(v.fuelType);
@@ -2462,10 +2574,10 @@ class FuelTrackerApp {
     const pendingRepairsInput = document.getElementById("vehiclePendingRepairs").value.trim();
 
     const inputCapacity = parseFloat(document.getElementById("vehicleCapacity").value);
-    const inputCurrent = parseFloat(document.getElementById("vehicleCurrentFuel").value);
     const inputEfficiency = parseFloat(document.getElementById("vehicleEfficiency").value);
+    const inputDistance = parseFloat(document.getElementById("vehicleDistanceTraveled").value);
 
-    if (!name || isNaN(inputCapacity) || isNaN(inputCurrent) || isNaN(inputEfficiency)) {
+    if (!name || isNaN(inputCapacity) || isNaN(inputEfficiency) || isNaN(inputDistance)) {
       alert("Please fill in all required fields with valid values.");
       return;
     }
@@ -2477,20 +2589,29 @@ class FuelTrackerApp {
 
     const isEV = fuelType === "Electric";
     let capacityMetric = inputCapacity;
-    let currentMetric = inputCurrent;
     let efficiencyMetric = inputEfficiency;
+    let distanceMetric = inputDistance;
 
     // Convert from Imperial to metric if needed
-    if (this.currentUnit === "imperial" && !isEV) {
-      capacityMetric = inputCapacity / LITERS_TO_GALLONS;
-      currentMetric = inputCurrent / LITERS_TO_GALLONS;
-      efficiencyMetric = inputEfficiency / KML_TO_MPG;
+    if (this.currentUnit === "imperial") {
+      if (!isEV) {
+        capacityMetric = inputCapacity / LITERS_TO_GALLONS;
+        efficiencyMetric = inputEfficiency / KML_TO_MPG;
+      }
+      distanceMetric = inputDistance / KM_TO_MILES;
     }
 
-    if (currentMetric > capacityMetric) {
-      alert("Current fuel level cannot exceed maximum tank capacity.");
-      return;
+    const fullRangeMetric = capacityMetric * efficiencyMetric;
+    if (distanceMetric > fullRangeMetric) {
+      const distUnit = this.currentUnit === "metric" ? "km" : "mi";
+      const maxDistDisplay = Math.round(this.currentUnit === "metric" ? fullRangeMetric : fullRangeMetric * KM_TO_MILES);
+      if (!confirm(`Warning: The distance entered (${inputDistance} ${distUnit}) exceeds the full tank range (${maxDistDisplay} ${distUnit}). The vehicle will show as empty (0% fuel). Do you want to proceed?`)) {
+        return;
+      }
     }
+
+    const fuelUsedMetric = efficiencyMetric > 0 ? (distanceMetric / efficiencyMetric) : 0;
+    const currentFuelMetric = Math.max(0, capacityMetric - fuelUsedMetric);
 
     if (id) {
       // Edit existing
@@ -2523,8 +2644,9 @@ class FuelTrackerApp {
           image,
           cctvImage: image,
           capacity: Number(capacityMetric.toFixed(2)),
-          currentFuel: Number(currentMetric.toFixed(2)),
           efficiency: Number(efficiencyMetric.toFixed(2)),
+          distanceTraveled: Number(distanceMetric.toFixed(1)),
+          currentFuel: Number(currentFuelMetric.toFixed(2)),
           color,
           notes,
           condition,
@@ -2562,8 +2684,9 @@ class FuelTrackerApp {
         cctvCamId: "CAM-01 • LOT A",
         cctvTarget: `AI OBJECT: ${name.toUpperCase()} [SECURE]`,
         capacity: Number(capacityMetric.toFixed(2)),
-        currentFuel: Number(currentMetric.toFixed(2)),
         efficiency: Number(efficiencyMetric.toFixed(2)),
+        distanceTraveled: Number(distanceMetric.toFixed(1)),
+        currentFuel: Number(currentFuelMetric.toFixed(2)),
         color,
         notes,
         condition,

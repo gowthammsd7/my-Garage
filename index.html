@@ -468,22 +468,25 @@
           </div>
         </div>
 
-        <div class="form-divider"><span>Fuel Capacity & Efficiency</span></div>
+        <div class="form-divider"><span>Tank Capacity, Efficiency &amp; Distance Driven</span></div>
 
         <div class="form-row">
           <div class="form-group flex-1">
             <label for="vehicleCapacity" id="labelCapacity">Tank Capacity (Liters) *</label>
-            <input type="number" id="vehicleCapacity" min="0.1" step="0.1" placeholder="e.g. 55" required>
-          </div>
-
-          <div class="form-group flex-1">
-            <label for="vehicleCurrentFuel" id="labelCurrentFuel">Current Fuel Remaining (Liters) *</label>
-            <input type="number" id="vehicleCurrentFuel" min="0" step="0.1" placeholder="e.g. 38" required>
+            <input type="number" id="vehicleCapacity" min="0.1" step="0.1" placeholder="e.g. 50" required>
           </div>
 
           <div class="form-group flex-1">
             <label for="vehicleEfficiency" id="labelEfficiency">Fuel Efficiency (km/L) *</label>
-            <input type="number" id="vehicleEfficiency" min="0.1" step="0.1" placeholder="e.g. 15.5" required>
+            <input type="number" id="vehicleEfficiency" min="0.1" step="0.1" placeholder="e.g. 15" required>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="vehicleDistanceTraveled" id="labelDistanceTraveled">Distance Driven Since Last Full Refuel (km) *</label>
+            <input type="number" id="vehicleDistanceTraveled" min="0" step="1" placeholder="0 if full tank" value="0" required>
+            <small class="form-help-text" style="display:block; margin-top: 0.25rem; font-size: 0.72rem; color: var(--text-muted);">
+              Trip meter reading since last full tank
+            </small>
           </div>
         </div>
 
@@ -566,15 +569,23 @@
 
         <!-- Calculated Live Preview in Modal -->
         <div class="modal-preview-card">
-          <div class="preview-badge">Live Range Preview</div>
+          <div class="preview-badge">Live Range &amp; Fuel Estimation</div>
           <div class="preview-stats">
             <div>
               <span class="preview-label">Estimated Range</span>
               <span class="preview-value" id="previewRange">0 km</span>
             </div>
             <div>
-              <span class="preview-label">Fuel Level</span>
-              <span class="preview-value" id="previewPercentage">0%</span>
+              <span class="preview-label">Estimated Fuel Left</span>
+              <span class="preview-value" id="previewFuelLeft">0 L (100%)</span>
+            </div>
+            <div>
+              <span class="preview-label">Fuel Consumed</span>
+              <span class="preview-value" id="previewFuelUsed">0 L</span>
+            </div>
+            <div>
+              <span class="preview-label">Full Tank Range</span>
+              <span class="preview-value" id="previewFullRange">0 km</span>
             </div>
           </div>
         </div>
@@ -587,38 +598,54 @@
     </div>
   </div>
 
-  <!-- Quick Refuel Modal -->
+  <!-- Quick Refuel & Trip Modal -->
   <div class="modal-overlay hidden" id="refuelModal">
     <div class="modal-container modal-sm">
       <div class="modal-header">
-        <h3 id="refuelTitle">Quick Refuel</h3>
+        <h3 id="refuelTitle">Trip Meter &amp; Refuel</h3>
         <button class="modal-close-btn" id="closeRefuelModalBtn" aria-label="Close refuel modal">&times;</button>
       </div>
       <div class="refuel-body">
         <p id="refuelVehicleName" class="refuel-veh-name"></p>
         <div class="refuel-current-status">
-          <span>Current Level: <strong id="refuelCurrentLiters">0</strong></span>
-          <span>Max Capacity: <strong id="refuelMaxLiters">0</strong></span>
+          <span>Distance Driven: <strong id="refuelDistanceDriven">0 km</strong></span>
+          <span>Est. Fuel Left: <strong id="refuelCurrentLiters">0 L</strong></span>
         </div>
 
-        <div class="quick-add-buttons" id="quickAddButtons">
-          <button class="btn btn-outline" data-amount="5">+5</button>
-          <button class="btn btn-outline" data-amount="10">+10</button>
-          <button class="btn btn-outline" data-amount="20">+20</button>
-          <button class="btn btn-outline" data-amount="full">Full Tank</button>
-        </div>
-
-        <div class="form-group" style="margin-top: 1rem;">
-          <label for="customRefuelAmount">Custom Amount to Add:</label>
-          <div class="input-with-suffix">
-            <input type="number" id="customRefuelAmount" min="0" step="0.5" placeholder="0">
-            <span class="input-suffix" id="refuelUnitSuffix">L</span>
+        <div style="margin: 0.75rem 0; padding: 0.85rem; background: var(--bg-input); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+            ⛽ Full Tank Refuel
           </div>
+          <p style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.65rem;">
+            Filled up your tank? Reset your trip meter to 0 km. Remaining fuel will reset to 100% full capacity.
+          </p>
+          <button type="button" class="btn btn-primary" id="resetTripFullTankBtn" style="width: 100%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+              <path d="M8 16H3v5"></path>
+            </svg>
+            <span>Reset Trip to 0 (Full Tank Refill)</span>
+          </button>
         </div>
 
-        <div class="modal-actions">
+        <div class="form-divider" style="margin: 1rem 0;"><span>Or Update Trip Distance</span></div>
+
+        <div class="form-group">
+          <label for="customDistanceInput" id="labelCustomDistance">Distance Driven Since Refuel:</label>
+          <div class="input-with-suffix">
+            <input type="number" id="customDistanceInput" min="0" step="1" placeholder="e.g. 150">
+            <span class="input-suffix" id="refuelDistUnitSuffix">km</span>
+          </div>
+          <small class="form-help-text" style="display:block; margin-top: 0.25rem; font-size: 0.72rem; color: var(--text-muted);">
+            Remaining fuel is estimated dynamically from your vehicle's mileage and this distance.
+          </small>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 1rem;">
           <button type="button" class="btn btn-secondary" id="cancelRefuelBtn">Cancel</button>
-          <button type="button" class="btn btn-primary" id="confirmRefuelBtn">Update Fuel</button>
+          <button type="button" class="btn btn-primary" id="confirmDistanceBtn">Save Distance</button>
         </div>
       </div>
     </div>
